@@ -1,19 +1,17 @@
 # Start from the official, pre-built n8n application
 FROM n8nio/n8n:latest
 
-# Switch to the root user to get permission to do admin tasks
+# Switch to the root user to have permissions for system-wide changes
 USER root
 
-# --- FIX ---
-# Create the directory that npm needs and set the correct permissions
-# This prevents the ENOENT error during installation.
-RUN mkdir -p /root/.npm && chown -R node:node /root/.npm
-
-# Now, switch to the node user to run the install command
-# Running as the user who will own the files is safer.
-USER node
-
-# Install the community node as the 'node' user
+# Install the community node globally. This is done as root.
 RUN npm install -g n8n-nodes-evolution-api
 
-# No need to switch users again, as n8n should run as 'node'
+# --- IMPORTANT ---
+# The n8n base image has a special directory for user-installed nodes.
+# We need to ensure the 'node' user owns everything inside it.
+# The `|| true` prevents an error if the directory doesn't exist yet.
+RUN chown -R node:node /home/node/.n8n/nodes || true
+
+# Switch back to the standard 'node' user for security before running the app
+USER node
